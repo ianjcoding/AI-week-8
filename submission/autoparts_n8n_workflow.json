@@ -1,0 +1,86 @@
+{
+"name": "AutoParts AI Agents Workflow",
+"nodes": [
+{
+"id": "1",
+"name": "Quality Inspection Trigger",
+"type": "cron",
+"parameters": {
+"interval": 5,
+"unit": "seconds"
+}
+},
+{
+"id": "2",
+"name": "Run Vision Model",
+"type": "aiModel",
+"parameters": {
+"model": "vision-defect-detector",
+"imageInput": "binary"
+}
+},
+{
+"id": "3",
+"name": "Check Defect Level",
+"type": "function",
+"parameters": {
+"code": "return items.map(item => ({ json: { defect: item.json.defectScore > 0.2 } }));"
+}
+},
+{
+"id": "4",
+"name": "Notify Operator",
+"type": "emailSend",
+"parameters": {
+"to": "quality@autoparts.com",
+"subject": "Defect Alert",
+"text": "Defect detected in recent scan."
+}
+},
+{
+"id": "5",
+"name": "Machine Sensor Trigger",
+"type": "cron",
+"parameters": {
+"interval": 1,
+"unit": "minutes"
+}
+},
+{
+"id": "6",
+"name": "Run Predictive Model",
+"type": "aiModel",
+"parameters": {
+"model": "maintenance-anomaly-detector"
+}
+},
+{
+"id": "7",
+"name": "Check Anomaly",
+"type": "function",
+"parameters": {
+"code": "return items.map(item => ({ json: { anomaly: item.json.score > 0.7 } }));"
+}
+},
+{
+"id": "8",
+"name": "Create Maintenance Ticket",
+"type": "httpRequest",
+"parameters": {
+"method": "POST",
+"url": "https://autoparts.com/api/createTicket",
+"body": { "issue": "Machine anomaly detected" }
+}
+}
+],
+"connections": {
+"Quality Inspection Trigger": { "main": [[{"node": "Run Vision Model"}]] },
+"Run Vision Model": { "main": [[{"node": "Check Defect Level"}]] },
+"Check Defect Level": { "main": [[{"node": "Notify Operator", "condition": "defect == true"}]] },
+
+
+"Machine Sensor Trigger": { "main": [[{"node": "Run Predictive Model"}]] },
+"Run Predictive Model": { "main": [[{"node": "Check Anomaly"}]] },
+"Check Anomaly": { "main": [[{"node": "Create Maintenance Ticket", "condition": "anomaly == true"}]] }
+}
+}
